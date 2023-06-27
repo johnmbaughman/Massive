@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Massive;
-using Massive.Tests;
-
-namespace Massive.Tests.Sqlite.TableClasses
+﻿namespace Massive.Tests.Sqlite.TableClasses
 {
 	public class Album : DynamicModel
 	{

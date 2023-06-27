@@ -1,5 +1,5 @@
 ﻿///////////////////////////////////////////////////////////////////////////////////////////////////
-// Massive v2.0. Async code. 
+// Massive v2.0. Async code.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Licensed to you under the New BSD License
 // http://www.opensource.org/licenses/bsd-license.php
@@ -7,32 +7,30 @@
 // All rights reserved.
 // See for sourcecode, full history and contributors list: https://github.com/FransBouma/Massive
 //
-// Redistribution and use in source and binary forms, with or without modification, are permitted 
+// Redistribution and use in source and binary forms, with or without modification, are permitted
 // provided that the following conditions are met:
 //
-// - Redistributions of source code must retain the above copyright notice, this list of conditions and the 
+// - Redistributions of source code must retain the above copyright notice, this list of conditions and the
 //   following disclaimer.
-// - Redistributions in binary form must reproduce the above copyright notice, this list of conditions and 
+// - Redistributions in binary form must reproduce the above copyright notice, this list of conditions and
 //   the following disclaimer in the documentation and/or other materials provided with the distribution.
-// - The names of its contributors may not be used to endorse or promote products derived from this software 
+// - The names of its contributors may not be used to endorse or promote products derived from this software
 //   without specific prior written permission.
-// 
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS 
-// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
-// AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR 
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY 
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+// AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
 // WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Data.Common;
 using System.Dynamic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -45,12 +43,12 @@ namespace Massive
 	public partial class DynamicModel
 	{
 		/// <summary>
-		/// Async variant of Query(). Executes the query and returns the results in a list. 
+		/// Async variant of Query(). Executes the query and returns the results in a list.
 		/// </summary>
 		/// <param name="sql">The SQL to execute as a command.</param>
 		/// <param name="args">The parameter values.</param>
 		/// <returns>
-		/// List with the results returned by the database. 
+		/// List with the results returned by the database.
 		/// </returns>
 		/// <remarks>This is different from the Query method which returns an IEnumerable. The reason is that async methods are reactive, while iterators are
 		/// pull based. An async iterator would be an Observable, from the Rx library, but we didn't want to take a dependency on Rx in Massive.</remarks>
@@ -123,7 +121,7 @@ namespace Massive
 			var toReturn = new List<dynamic>();
 			using(var rdr = await CreateCommand(sql, connection, args).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
 			{
-				while(rdr.Read())
+				while(await rdr.ReadAsync(cancellationToken))
 				{
 					toReturn.Add(rdr.RecordToExpando());
 				}
@@ -145,7 +143,7 @@ namespace Massive
 		{
 			return ScalarAsync(sql, CancellationToken.None, args);
 		}
-		
+
 
 		/// <summary>
 		/// Async variant of Scalar(). Returns a single result by executing the passed in query + parameters as a scalar query.
@@ -167,7 +165,7 @@ namespace Massive
 			return result;
 		}
 
-		
+
 		/// <summary>
 		/// Async variant of Execute(). Executes the specified command using a new connection
 		/// </summary>
@@ -328,7 +326,7 @@ namespace Massive
 		/// <returns>
 		/// The result of the paged query. Result properties are Items, TotalPages, and TotalRecords.
 		/// </returns>
-		public virtual Task<dynamic> PagedAsync(CancellationToken cancellationToken, string where = "", string orderBy = "", string columns = "*", int pageSize = 20, 
+		public virtual Task<dynamic> PagedAsync(CancellationToken cancellationToken, string where = "", string orderBy = "", string columns = "*", int pageSize = 20,
 												int currentPage = 1, params object[] args)
 		{
 			return BuildPagedResultAsync(cancellationToken, whereClause: where, orderByClause: orderBy, columns: columns, pageSize: pageSize, currentPage: currentPage, args: args);
@@ -349,7 +347,7 @@ namespace Massive
 		/// <returns>
 		/// The result of the paged query. Result properties are Items, TotalPages, and TotalRecords.
 		/// </returns>
-		public Task<dynamic> PagedAsync(string sql, string primaryKey, string where = "", string orderBy = "", string columns = "*", int pageSize = 20, int currentPage = 1, 
+		public Task<dynamic> PagedAsync(string sql, string primaryKey, string where = "", string orderBy = "", string columns = "*", int pageSize = 20, int currentPage = 1,
 									    params object[] args)
 		{
 			return PagedAsync(CancellationToken.None, sql, primaryKey, where, orderBy, columns, pageSize, currentPage, args);
@@ -371,7 +369,7 @@ namespace Massive
 		/// <returns>
 		/// The result of the paged query. Result properties are Items, TotalPages, and TotalRecords.
 		/// </returns>
-		public virtual Task<dynamic> PagedAsync(CancellationToken cancellationToken, string sql, string primaryKey, string where = "", string orderBy = "", string columns = "*", 
+		public virtual Task<dynamic> PagedAsync(CancellationToken cancellationToken, string sql, string primaryKey, string where = "", string orderBy = "", string columns = "*",
 												int pageSize = 20, int currentPage = 1, params object[] args)
 		{
 			return BuildPagedResultAsync(cancellationToken, sql, primaryKey, where, orderBy, columns, pageSize, currentPage, args);
@@ -501,7 +499,7 @@ namespace Massive
 
 
 		/// <summary>
-		/// Async variant of InsertAsync(). Adds a record to the database. You can pass in an Anonymous object, an ExpandoObject, a regular old POCO, or a NameValueColletion from a 
+		/// Async variant of InsertAsync(). Adds a record to the database. You can pass in an Anonymous object, an ExpandoObject, a regular old POCO, or a NameValueColletion from a
 		/// Request.Form or Request.QueryString
 		/// </summary>
 		/// <param name="o">The object to insert.</param>
@@ -515,7 +513,7 @@ namespace Massive
 
 
 		/// <summary>
-		/// Async variant of InsertAsync(). Adds a record to the database. You can pass in an Anonymous object, an ExpandoObject, a regular old POCO, or a NameValueColletion from a 
+		/// Async variant of InsertAsync(). Adds a record to the database. You can pass in an Anonymous object, an ExpandoObject, a regular old POCO, or a NameValueColletion from a
 		/// Request.Form or Request.QueryString
 		/// </summary>
 		/// <param name="o">The object to insert.</param>
@@ -530,18 +528,17 @@ namespace Massive
 			{
 				throw new InvalidOperationException("Can't insert: " + string.Join("; ", Errors.ToArray()));
 			}
-			if(BeforeSave(oAsExpando))
-			{
-				using(var conn = await OpenConnectionAsync(cancellationToken).ConfigureAwait(false))
-				{
-					await PerformInsertAsync(conn, oAsExpando, cancellationToken).ConfigureAwait(false);
-					Inserted(oAsExpando);
-					conn.Close();
-				}
-				return oAsExpando;
-			}
-			return null;
-		}
+
+            if (!BeforeSave(oAsExpando)) return null;
+
+            using(var conn = await OpenConnectionAsync(cancellationToken).ConfigureAwait(false))
+            {
+                await PerformInsertAsync(conn, oAsExpando, cancellationToken).ConfigureAwait(false);
+                Inserted(oAsExpando);
+                conn.Close();
+            }
+            return oAsExpando;
+        }
 
 
 		/// <summary>
@@ -566,7 +563,7 @@ namespace Massive
 			}
 			else
 			{
-				// simply batch the identity scalar query to the main insert query and execute them as one scalar query. This will both execute the statement and 
+				// simply batch the identity scalar query to the main insert query and execute them as one scalar query. This will both execute the statement and
 				// return the sequence value
 				cmd.CommandText += ";" + this.GetIdentityRetrievalScalarStatement();
 				((IDictionary<string, object>)toInsert)[this.PrimaryKeyField] = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
@@ -575,7 +572,7 @@ namespace Massive
 
 
 		/// <summary>
-		/// Async variant of Update(). Updates a record in the database. You can pass in an Anonymous object, an ExpandoObject, a regular old POCO, or a NameValueCollection from a 
+		/// Async variant of Update(). Updates a record in the database. You can pass in an Anonymous object, an ExpandoObject, a regular old POCO, or a NameValueCollection from a
 		/// Request.Form or Request.QueryString
 		/// </summary>
 		/// <param name="o">The object to update</param>
@@ -590,7 +587,7 @@ namespace Massive
 
 
 		/// <summary>
-		/// Async variant of Update(). Updates a record in the database. You can pass in an Anonymous object, an ExpandoObject, a regular old POCO, or a NameValueCollection from a 
+		/// Async variant of Update(). Updates a record in the database. You can pass in an Anonymous object, an ExpandoObject, a regular old POCO, or a NameValueCollection from a
 		/// Request.Form or Request.QueryString
 		/// </summary>
 		/// <param name="o">The object to update</param>
@@ -607,12 +604,11 @@ namespace Massive
 				throw new InvalidOperationException("Can't Update: " + string.Join("; ", Errors.ToArray()));
 			}
 			var result = 0;
-			if(BeforeSave(ex))
-			{
-				result = await ExecuteAsync(CreateUpdateCommand(ex, key), cancellationToken).ConfigureAwait(false);
-				Updated(ex);
-			}
-			return result;
+            if (!BeforeSave(ex)) return result;
+
+            result = await ExecuteAsync(CreateUpdateCommand(ex, key), cancellationToken).ConfigureAwait(false);
+            Updated(ex);
+            return result;
 		}
 
 
@@ -655,12 +651,11 @@ namespace Massive
 				throw new InvalidOperationException("Can't Update: " + string.Join("; ", Errors.ToArray()));
 			}
 			var result = 0;
-			if(BeforeSave(ex))
-			{
-				result = await ExecuteAsync(CreateUpdateWhereCommand(ex, where, args), cancellationToken).ConfigureAwait(false);
-				Updated(ex);
-			}
-			return result;
+            if (!BeforeSave(ex)) return result;
+
+            result = await ExecuteAsync(CreateUpdateWhereCommand(ex, where, args), cancellationToken).ConfigureAwait(false);
+            Updated(ex);
+            return result;
 		}
 
 
@@ -694,12 +689,11 @@ namespace Massive
 			}
 			var deleted = await SingleAsync(cancellationToken, key).ConfigureAwait(false);
 			var result = 0;
-			if(BeforeDelete(deleted))
-			{
-				result = await ExecuteAsync(CreateDeleteCommand(where, key, args), cancellationToken).ConfigureAwait(false);
-				Deleted(deleted);
-			}
-			return result;
+            if (!BeforeDelete(deleted)) return result;
+
+            result = await ExecuteAsync(CreateDeleteCommand(where, key, args), cancellationToken).ConfigureAwait(false);
+            Deleted(deleted);
+            return result;
 		}
 
 
@@ -764,15 +758,14 @@ namespace Massive
 		public virtual async Task<DbConnection> OpenConnectionAsync(CancellationToken cancellationToken)
 		{
 			var result = _factory.CreateConnection();
-			if(result != null)
-			{
-				result.ConnectionString = _connectionString;
-				await result.OpenAsync(cancellationToken).ConfigureAwait(false);
-			}
-			return result;
+            if (result == null) return null;
+
+            result.ConnectionString = _connectionString;
+            await result.OpenAsync(cancellationToken).ConfigureAwait(false);
+            return result;
 		}
 
-		
+
 		/// <summary>
 		/// Async variant of PerformSave. Performs the save of the elements in toSave for the Save() and SaveAsNew() methods.
 		/// </summary>
@@ -792,23 +785,22 @@ namespace Massive
 					foreach(var o in toSave)
 					{
 						var oAsExpando = o.ToExpando();
-						if(BeforeSave(oAsExpando))
-						{
-							if(!allSavesAreInserts && HasPrimaryKey(o))
-							{
-								// update
-								result += await ExecuteDbCommandAsync(CreateUpdateCommand(oAsExpando, GetPrimaryKey(o)), connectionToUse, transactionToUse, cancellationToken).ConfigureAwait(false);
-								Updated(oAsExpando);
-							}
-							else
-							{
-								// insert
-								await PerformInsertAsync(connectionToUse, transactionToUse, oAsExpando).ConfigureAwait(false);
-								Inserted(oAsExpando);
-								result++;
-							}
-						}
-					}
+                        if (!BeforeSave(oAsExpando)) continue;
+
+                        if(!allSavesAreInserts && HasPrimaryKey(o))
+                        {
+                            // update
+                            result += await ExecuteDbCommandAsync(CreateUpdateCommand(oAsExpando, GetPrimaryKey(o)), connectionToUse, transactionToUse, cancellationToken).ConfigureAwait(false);
+                            Updated(oAsExpando);
+                        }
+                        else
+                        {
+                            // insert
+                            await PerformInsertAsync(connectionToUse, transactionToUse, oAsExpando).ConfigureAwait(false);
+                            Inserted(oAsExpando);
+                            result++;
+                        }
+                    }
 					transactionToUse.Commit();
 				}
 				connectionToUse.Close();
@@ -825,7 +817,7 @@ namespace Massive
 		/// <param name="transactionToUse">The transaction to use, can be null.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns></returns>
-		private Task<int> ExecuteDbCommandAsync(DbCommand cmd, DbConnection connectionToUse, DbTransaction transactionToUse, CancellationToken cancellationToken)
+		private static Task<int> ExecuteDbCommandAsync(DbCommand cmd, DbConnection connectionToUse, DbTransaction transactionToUse, CancellationToken cancellationToken)
 		{
 			cmd.Connection = connectionToUse;
 			cmd.Transaction = transactionToUse;
@@ -848,7 +840,7 @@ namespace Massive
 		/// <returns>
 		/// The result of the paged query. Result properties are Items, TotalPages, and TotalRecords.
 		/// </returns>
-		private async Task<dynamic> BuildPagedResultAsync(CancellationToken cancellationToken, string sql = "", string primaryKeyField = "", string whereClause = "", 
+		private async Task<dynamic> BuildPagedResultAsync(CancellationToken cancellationToken, string sql = "", string primaryKeyField = "", string whereClause = "",
 														  string orderByClause = "", string columns = "*", int pageSize = 20, int currentPage = 1, params object[] args)
 		{
 			var queryPair = this.BuildPagingQueryPair(sql, primaryKeyField, whereClause, orderByClause, columns, pageSize, currentPage);

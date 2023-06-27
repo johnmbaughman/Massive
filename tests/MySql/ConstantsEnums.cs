@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Massive.Tests.MySql
+﻿namespace Massive.Tests.MySql
 {
 	public static class TestConstants
 	{

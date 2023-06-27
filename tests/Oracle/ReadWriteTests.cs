@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Data;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Massive.Tests.Oracle.TableClasses;
-using NUnit.Framework;
-using SD.Tools.OrmProfiler.Interceptor;
+using Xunit;
 
 namespace Massive.Tests.Oracle
 {

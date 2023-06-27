@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using Massive.Tests.MySql.TableClasses;
-using NUnit.Framework;
-using SD.Tools.OrmProfiler.Interceptor;
+using Xunit;
 
 namespace Massive.Tests.MySql
 {

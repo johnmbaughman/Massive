@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
-using System.Dynamic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using Massive.Tests.MySql.TableClasses;
-using NUnit.Framework;
-using SD.Tools.OrmProfiler.Interceptor;
+using Xunit;
 
 namespace Massive.Tests.MySql
 {
@@ -29,9 +23,9 @@ namespace Massive.Tests.MySql
 
 		[TestFixtureSetUp]
 		public void Setup()
-		{
-			InterceptorCore.Initialize("Massive MySql write tests .NET 4.0");
-		}
+        {
+            InterceptorCore.Initialize("Massive MySql write tests .NET 4.0");
+        }
 
 
 		[Test]

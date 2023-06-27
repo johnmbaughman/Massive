@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using NUnit.Framework;
 using Massive.Tests.Sqlite.TableClasses;
-using SD.Tools.OrmProfiler.Interceptor;
+using Xunit;
 
 namespace Massive.Tests.Sqlite
 {

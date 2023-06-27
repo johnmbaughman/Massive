@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <BaseOutputPath>bin\net6.0\Core.SqlServer</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj\net6.0\Core.SqlServer</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Properties\**" />
+    <EmbeddedResource Remove="Properties\**" />
+    <None Remove="Properties\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Massive.MySql.cs" />
+    <Compile Remove="Massive.Oracle.cs" />
+    <Compile Remove="Massive.PostgreSQL.cs" />
+    <Compile Remove="Massive.Shared.Async.cs" />
+    <Compile Remove="Massive.Shared.cs" />
+    <Compile Remove="Massive.Sqlite.cs" />
+    <Compile Remove="Massive.SqlServer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
+  </ItemGroup>
+
+</Project>

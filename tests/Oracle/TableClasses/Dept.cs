@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Massive.Tests.Oracle.TableClasses
+﻿namespace Massive.Tests.Oracle.TableClasses
 {
 	public class Department : DynamicModel
 	{
