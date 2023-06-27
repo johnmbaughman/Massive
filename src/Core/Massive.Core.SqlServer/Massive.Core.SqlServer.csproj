@@ -9,12 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Properties\**" />
-    <EmbeddedResource Remove="Properties\**" />
-    <None Remove="Properties\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Remove="Massive.MySql.cs" />
     <Compile Remove="Massive.Oracle.cs" />
     <Compile Remove="Massive.PostgreSQL.cs" />

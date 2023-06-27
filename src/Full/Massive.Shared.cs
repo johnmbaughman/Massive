@@ -49,11 +49,11 @@ namespace Massive
         /// <param name="args">The parameter values to convert to parameters.</param>
         public static void AddParams(this DbCommand cmd, params object[] args)
         {
-            if(args == null)
+            if (args == null)
             {
                 return;
             }
-            foreach(var item in args)
+            foreach (var item in args)
             {
                 AddParam(cmd, item);
             }
@@ -68,7 +68,7 @@ namespace Massive
         public static List<dynamic> ToExpandoList(this IDataReader reader)
         {
             var result = new List<dynamic>();
-            while(reader.Read())
+            while (reader.Read())
             {
                 result.Add(reader.RecordToExpando());
             }
@@ -87,7 +87,7 @@ namespace Massive
             var d = (IDictionary<string, object>)e;
             var values = new object[reader.FieldCount];
             reader.GetValues(values);
-            for(var i = 0; i < values.Length; i++)
+            for (var i = 0; i < values.Length; i++)
             {
                 var v = values[i];
                 d.Add(reader.GetName(i), DBNull.Value.Equals(v) ? null : v);
@@ -103,13 +103,13 @@ namespace Massive
         /// <returns>a new expando object with the values of the passed in object</returns>
         public static dynamic ToExpando(this object o)
         {
-            if(o is ExpandoObject)
+            if (o is ExpandoObject)
             {
                 return o;
             }
             var result = new ExpandoObject();
             var d = (IDictionary<string, object>)result; //work with the Expando as a Dictionary
-            if(o.GetType() == typeof(NameValueCollection) || o.GetType().IsSubclassOf(typeof(NameValueCollection)))
+            if (o.GetType() == typeof(NameValueCollection) || o.GetType().IsSubclassOf(typeof(NameValueCollection)))
             {
                 var nv = (NameValueCollection)o;
                 nv.Cast<string>().Select(key => new KeyValuePair<string, object>(key, nv[key])).ToList().ForEach(i => d.Add(i));
@@ -117,7 +117,7 @@ namespace Massive
             else
             {
                 var props = o.GetType().GetProperties();
-                foreach(var item in props)
+                foreach (var item in props)
                 {
                     d.Add(item.Name, item.GetValue(o, null));
                 }
@@ -147,11 +147,11 @@ namespace Massive
         {
             var data = items.ToArray();
             var toReturn = new DataTable();
-            if(!data.Any())
+            if (!data.Any())
             {
                 return toReturn;
             }
-            foreach(var kvp in (IDictionary<string, object>)data[0])
+            foreach (var kvp in (IDictionary<string, object>)data[0])
             {
                 // for now we'll fall back to string if the value is null, as we don't know any type information on null values.
                 var type = kvp.Value == null ? typeof(string) : kvp.Value.GetType();
@@ -175,11 +175,11 @@ namespace Massive
         public static DataTable ToDataTable(this IEnumerable<dynamic> items, DataTable toFill)
         {
             var data = items is dynamic[] v ? v : items.ToArray();
-            if(toFill == null || toFill.Columns.Count <= 0)
+            if (toFill == null || toFill.Columns.Count <= 0)
             {
                 return toFill;
             }
-            foreach(var d in data)
+            foreach (var d in data)
             {
                 toFill.Rows.Add(((IDictionary<string, object>)d).Values.ToArray());
             }
@@ -197,7 +197,7 @@ namespace Massive
         {
             get
             {
-                if(ConfigurationManager.ConnectionStrings.Count > 1)
+                if (ConfigurationManager.ConnectionStrings.Count > 1)
                 {
                     return new DynamicModel(ConfigurationManager.ConnectionStrings[1].Name);
                 }
@@ -217,6 +217,7 @@ namespace Massive
         private readonly DbProviderFactory _factory;
         private string _connectionString;
         private IEnumerable<dynamic> _schema;
+        private readonly DbConnection _connection;
         private readonly string _primaryKeyFieldSequence;
         #endregion
 
@@ -225,15 +226,16 @@ namespace Massive
         /// Initializes a new instance of the <see cref="DynamicModel" /> class.
         /// </summary>
         /// <param name="connectionStringName">Name of the connection string to load from the config file.</param>
+        /// <param name="connection"></param>
         /// <param name="tableName">Name of the table to read the meta data for. Can be left empty, in which case the name of this type is used.</param>
         /// <param name="primaryKeyField">The primary key field. Can be left empty, in which case 'ID' is used.</param>
         /// <param name="descriptorField">The descriptor field, if the table is a lookup table. Descriptor field is the field containing the textual representation of the value
-        /// in primaryKeyField.</param>
+        ///     in primaryKeyField.</param>
         /// <param name="primaryKeyFieldSequence">The primary key sequence to use. Specify the empty string if the PK isn't sequenced/identity. Is initialized by default with
-        /// the name specified in the constant DynamicModel.DefaultSequenceName.</param>
+        ///     the name specified in the constant DynamicModel.DefaultSequenceName.</param>
         /// <param name="connectionStringProvider">The connection string provider to use. By default this is empty and the default provider is used which will read values from
-        /// the application's config file.</param>
-        public DynamicModel(string connectionStringName, string tableName = "", string primaryKeyField = "", string descriptorField = "",
+        ///     the application's config file.</param>
+        public DynamicModel(string connectionStringName = "", DbConnection connection = null, string tableName = "", string primaryKeyField = "", string descriptorField = "",
                             string primaryKeyFieldSequence = _defaultSequenceName,
                             IConnectionStringProvider connectionStringProvider = null)
         {
@@ -244,17 +246,25 @@ namespace Massive
             DescriptorField = descriptorField;
             Errors = new List<string>();
 
-            if(connectionStringProvider == null)
+            if (connectionStringProvider == null)
             {
                 connectionStringProvider = new ConfigurationBasedConnectionStringProvider();
             }
-            var providerName = connectionStringProvider.GetProviderName(connectionStringName);
-            if(string.IsNullOrWhiteSpace(providerName))
+            if (connection == null)
             {
-                providerName = DbProviderFactoryName;
+                var providerName = connectionStringProvider.GetProviderName(connectionStringName);
+                if (string.IsNullOrWhiteSpace(providerName))
+                {
+                    providerName = DbProviderFactoryName;
+                }
+
+                _factory = DbProviderFactories.GetFactory(providerName);
+                _connectionString = connectionStringProvider.GetConnectionString(connectionStringName);
             }
-            _factory = DbProviderFactories.GetFactory(providerName);
-            _connectionString = connectionStringProvider.GetConnectionString(connectionStringName);
+            else
+            {
+                _connection = connection;
+            }
         }
 
 
@@ -277,9 +287,18 @@ namespace Massive
         /// <returns>ready to use, empty DynamicModel</returns>
         public static DynamicModel Open(string connectionStringName)
         {
-            return new DynamicModel(connectionStringName);
+            return new DynamicModel(connectionStringName: connectionStringName);
         }
 
+        /// <summary>
+        /// Gets or creates a new, empty DynamicModel on the DB pointed to by the <seealso cref="System.Data.Common.DbConnection"/>.
+        /// </summary>
+        /// <param name="connection">The connection to use for data actions.</param>
+        /// <returns>ready to use, empty DynamicModel</returns>
+        public static DynamicModel Open(DbConnection connection)
+        {
+            return new DynamicModel(connection: connection);
+        }
 
         /// <summary>
         /// Creates a new Expando from a Form POST - white listed against the columns in the DB, only setting values which names are in the schema.
@@ -290,10 +309,10 @@ namespace Massive
         {
             dynamic result = new ExpandoObject();
             var dc = (IDictionary<string, object>)result;
-            foreach(var item in coll.Keys)
+            foreach (var item in coll.Keys)
             {
                 var columnName = item.ToString();
-                if(ColumnExists(columnName))
+                if (ColumnExists(columnName))
                 {
                     dc.Add(columnName, coll[columnName]);
                 }
@@ -310,11 +329,11 @@ namespace Massive
         /// <returns>streaming enumerable with expandos, one for each row read</returns>
         public virtual IEnumerable<dynamic> Query(string sql, params object[] args)
         {
-            using(var conn = OpenConnection())
+            using (var conn = OpenConnection())
             {
-                using(var rdr = CreateCommand(sql, conn, args).ExecuteReader())
+                using (var rdr = CreateCommand(sql, conn, args).ExecuteReader())
                 {
-                    while(rdr.Read())
+                    while (rdr.Read())
                     {
                         yield return rdr.RecordToExpando();
                     }
@@ -334,9 +353,9 @@ namespace Massive
         /// <returns>streaming enumerable with expandos, one for each row read</returns>
         public virtual IEnumerable<dynamic> Query(string sql, DbConnection connection, params object[] args)
         {
-            using(var rdr = CreateCommand(sql, connection, args).ExecuteReader())
+            using (var rdr = CreateCommand(sql, connection, args).ExecuteReader())
             {
-                while(rdr.Read())
+                while (rdr.Read())
                 {
                     yield return rdr.RecordToExpando();
                 }
@@ -354,7 +373,7 @@ namespace Massive
         public virtual object Scalar(string sql, params object[] args)
         {
             object result;
-            using(var conn = OpenConnection())
+            using (var conn = OpenConnection())
             {
                 result = CreateCommand(sql, conn, args).ExecuteScalar();
                 conn.Close();
@@ -368,6 +387,8 @@ namespace Massive
         /// </summary>
         public virtual DbConnection OpenConnection()
         {
+            if (_connection != null) return _connection;
+
             var result = _factory.CreateConnection();
             if (result == null) return null;
             result.ConnectionString = _connectionString;
@@ -407,11 +428,11 @@ namespace Massive
         public virtual int Execute(IEnumerable<DbCommand> commands)
         {
             var result = 0;
-            using(var conn = OpenConnection())
+            using (var conn = OpenConnection())
             {
-                using(var tx = conn.BeginTransaction())
+                using (var tx = conn.BeginTransaction())
                 {
-                    foreach(var cmd in commands)
+                    foreach (var cmd in commands)
                     {
                         result += ExecuteDbCommand(cmd, conn, tx);
                     }
@@ -522,7 +543,7 @@ namespace Massive
         /// </summary>
         public virtual IDictionary<string, object> KeyValues(string orderBy = "")
         {
-            if(string.IsNullOrEmpty(DescriptorField))
+            if (string.IsNullOrEmpty(DescriptorField))
             {
                 throw new InvalidOperationException("There's no DescriptorField set - do this in your constructor to describe the text value you want to see");
             }
@@ -562,11 +583,11 @@ namespace Massive
         /// <returns>the sum of the values returned by the database when executing each command.</returns>
         public virtual int Save(params object[] things)
         {
-            if(things == null)
+            if (things == null)
             {
                 throw new ArgumentNullException("things");
             }
-            if(things.Any(item => !IsValid(item)))
+            if (things.Any(item => !IsValid(item)))
             {
                 throw new InvalidOperationException("Can't save this item: " + string.Join("; ", Errors.ToArray()));
             }
@@ -581,11 +602,11 @@ namespace Massive
         /// <returns>the sum of the values returned by the database when executing each command.</returns>
         public virtual int SaveAsNew(params object[] things)
         {
-            if(things == null)
+            if (things == null)
             {
                 throw new ArgumentNullException(nameof(things));
             }
-            if(things.Any(item => !IsValid(item)))
+            if (things.Any(item => !IsValid(item)))
             {
                 throw new InvalidOperationException("Can't save this item: " + string.Join("; ", Errors.ToArray()));
             }
@@ -601,14 +622,14 @@ namespace Massive
         public virtual dynamic Insert(object o)
         {
             var oAsExpando = o.ToExpando();
-            if(!IsValid(oAsExpando))
+            if (!IsValid(oAsExpando))
             {
                 throw new InvalidOperationException("Can't insert: " + string.Join("; ", Errors.ToArray()));
             }
 
             if (!BeforeSave(oAsExpando)) return null;
 
-            using(var conn = OpenConnection())
+            using (var conn = OpenConnection())
             {
                 PerformInsert(conn, null, oAsExpando);
                 Inserted(oAsExpando);
@@ -627,7 +648,7 @@ namespace Massive
         public virtual int Update(object o, object key)
         {
             var oAsExpando = o.ToExpando();
-            if(!IsValid(oAsExpando))
+            if (!IsValid(oAsExpando))
             {
                 throw new InvalidOperationException("Can't Update: " + string.Join("; ", Errors.ToArray()));
             }
@@ -650,12 +671,12 @@ namespace Massive
         /// <returns>the number returned by the database after executing the update command </returns>
         public virtual int Update(object o, string where = "1=1", params object[] args)
         {
-            if(string.IsNullOrWhiteSpace(where))
+            if (string.IsNullOrWhiteSpace(where))
             {
                 return 0;
             }
             var oAsExpando = o.ToExpando();
-            if(!IsValid(oAsExpando))
+            if (!IsValid(oAsExpando))
             {
                 throw new InvalidOperationException("Can't Update: " + string.Join("; ", Errors.ToArray()));
             }
@@ -677,7 +698,7 @@ namespace Massive
         /// <returns></returns>
         public virtual int Delete(object key = null, string where = "", params object[] args)
         {
-            if(key == null)
+            if (key == null)
             {
                 // directly delete on the DB, no fetch of individual element
                 return Execute(CreateDeleteCommand(where, null, args));
@@ -727,7 +748,7 @@ namespace Massive
         /// <param name="message">The message to log as Error. Default is 'Required'.</param>
         public virtual void ValidatesPresenceOf(object value, string message = "Required")
         {
-            if((value == null) || string.IsNullOrEmpty(value.ToString()))
+            if ((value == null) || string.IsNullOrEmpty(value.ToString()))
             {
                 Errors.Add(message);
             }
@@ -742,7 +763,7 @@ namespace Massive
         public virtual void ValidatesNumericalityOf(object value, string message = "Should be a number")
         {
             var numerics = new[] { "Int32", "Int16", "Int64", "Decimal", "Double", "Single", "Float" };
-            if((value == null) || !numerics.Contains(value.GetType().Name))
+            if ((value == null) || !numerics.Contains(value.GetType().Name))
             {
                 Errors.Add(message);
             }
@@ -795,7 +816,7 @@ namespace Massive
         {
             result = null;
             var info = binder.CallInfo;
-            if(info.ArgumentNames.Count != args.Length)
+            if (info.ArgumentNames.Count != args.Length)
             {
                 throw new InvalidOperationException("Please use named arguments for this type of query - the column name, orderby, columns, etc");
             }
@@ -806,12 +827,12 @@ namespace Massive
             var whereArguments = new List<object>();
             var wherePredicates = new List<string>();
             var counter = 0;
-            if(info.ArgumentNames.Count > 0)
+            if (info.ArgumentNames.Count > 0)
             {
-                for(var i = 0; i < args.Length; i++)
+                for (var i = 0; i < args.Length; i++)
                 {
                     var name = info.ArgumentNames[i].ToLowerInvariant();
-                    switch(name)
+                    switch (name)
                     {
                         case "orderby":
                             orderByClauseFragment = " ORDER BY " + args[i];
@@ -831,14 +852,14 @@ namespace Massive
                     }
                 }
             }
-            if(wherePredicates.Count > 0)
+            if (wherePredicates.Count > 0)
             {
                 whereClauseFragment = " WHERE " + string.Join(" AND ", wherePredicates.ToArray());
             }
 
             var op = binder.Name;
             var oplowercase = op.ToLowerInvariant();
-            switch(oplowercase)
+            switch (oplowercase)
             {
                 case "count":
                     result = Count(TableName, whereClauseFragment, whereArguments.ToArray());
@@ -848,7 +869,7 @@ namespace Massive
                 case "min":
                 case "avg":
                     var aggregate = GetAggregateFunction(oplowercase);
-                    if(!string.IsNullOrWhiteSpace(aggregate))
+                    if (!string.IsNullOrWhiteSpace(aggregate))
                     {
                         result = Scalar($"SELECT {aggregate}({columns}) FROM {TableName} {whereClauseFragment}", whereArguments.ToArray());
                     }
@@ -856,7 +877,7 @@ namespace Massive
                 default:
                     var justOne = op.StartsWith("First") || op.StartsWith("Last") || op.StartsWith("Get") || op.StartsWith("Find") || op.StartsWith("Single");
                     //Be sure to sort by DESC on the PK (PK Sort is the default)
-                    if(op.StartsWith("Last"))
+                    if (op.StartsWith("Last"))
                     {
                         orderByClauseFragment += " DESC ";
                     }
@@ -880,14 +901,14 @@ namespace Massive
             var insertQueryPattern = GetInsertQueryPattern();
             var result = CreateCommand(insertQueryPattern, null);
             var counter = 0;
-            foreach(var item in (IDictionary<string, object>)expando)
+            foreach (var item in (IDictionary<string, object>)expando)
             {
                 fieldNames.Add(item.Key);
                 valueParameters.Add(PrefixParameterName(counter.ToString()));
                 result.AddParam(item.Value);
                 counter++;
             }
-            if(counter > 0)
+            if (counter > 0)
             {
                 result.CommandText = string.Format(insertQueryPattern, TableName, string.Join(", ", fieldNames.ToArray()), string.Join(", ", valueParameters.ToArray()));
             }
@@ -928,12 +949,12 @@ namespace Massive
             updateQueryPattern += ReadifyWhereClause(where);
             var result = CreateCommand(updateQueryPattern, null, args);
             var counter = args.Length > 0 ? args.Length : 0;
-            foreach(var item in (IDictionary<string, object>)expando)
+            foreach (var item in (IDictionary<string, object>)expando)
             {
                 var val = item.Value;
                 if (item.Key.Equals(PrimaryKeyField, StringComparison.OrdinalIgnoreCase)) continue;
 
-                if(item.Value == null)
+                if (item.Value == null)
                 {
                     fieldSetFragments.Add($"{item.Key} = NULL");
                 }
@@ -944,7 +965,7 @@ namespace Massive
                     counter++;
                 }
             }
-            if(fieldSetFragments.Count > 0)
+            if (fieldSetFragments.Count > 0)
             {
                 result.CommandText = string.Format(updateQueryPattern, TableName, string.Join(", ", fieldSetFragments.ToArray()));
             }
@@ -966,7 +987,7 @@ namespace Massive
         public virtual DbCommand CreateDeleteCommand(string where = "", object key = null, params object[] args)
         {
             var sql = string.Format(GetDeleteQueryPattern(), TableName);
-            if(key == null)
+            if (key == null)
             {
                 sql += ReadifyWhereClause(where);
             }
@@ -1027,7 +1048,7 @@ namespace Massive
         /// <returns>new DbCommand, ready to rock</returns>
         private DbCommand CreateCommand(string sql, DbConnection conn, params object[] args)
         {
-            var result = _factory.CreateCommand();
+            var result = _factory?.CreateCommand() ?? conn?.CreateCommand() ?? _connection.CreateCommand();
             if (result == null) return null;
 
             SetCommandSpecificProperties(result);
@@ -1046,7 +1067,7 @@ namespace Massive
         /// <param name="toInsert">The dynamic to insert. Is used to create the sql queries</param>
         private void PerformInsert(DbConnection connectionToUse, DbTransaction transactionToUse, dynamic toInsert)
         {
-            if(_sequenceValueCallsBeforeMainInsert && !string.IsNullOrEmpty(_primaryKeyFieldSequence))
+            if (_sequenceValueCallsBeforeMainInsert && !string.IsNullOrEmpty(_primaryKeyFieldSequence))
             {
                 var sequenceCmd = CreateCommand(GetIdentityRetrievalScalarStatement(), connectionToUse);
                 sequenceCmd.Transaction = transactionToUse;
@@ -1055,7 +1076,7 @@ namespace Massive
             DbCommand cmd = CreateInsertCommand(toInsert);
             cmd.Connection = connectionToUse;
             cmd.Transaction = transactionToUse;
-            if(_sequenceValueCallsBeforeMainInsert || string.IsNullOrEmpty(_primaryKeyFieldSequence))
+            if (_sequenceValueCallsBeforeMainInsert || string.IsNullOrEmpty(_primaryKeyFieldSequence))
             {
                 cmd.ExecuteNonQuery();
             }
@@ -1077,16 +1098,16 @@ namespace Massive
         private int PerformSave(bool allSavesAreInserts, params object[] toSave)
         {
             var result = 0;
-            using(var connectionToUse = OpenConnection())
+            using (var connectionToUse = OpenConnection())
             {
-                using(var transactionToUse = connectionToUse.BeginTransaction())
+                using (var transactionToUse = connectionToUse.BeginTransaction())
                 {
-                    foreach(var o in toSave)
+                    foreach (var o in toSave)
                     {
                         var oAsExpando = o.ToExpando();
                         if (!BeforeSave(oAsExpando)) continue;
 
-                        if(!allSavesAreInserts && HasPrimaryKey(o))
+                        if (!allSavesAreInserts && HasPrimaryKey(o))
                         {
                             // update
                             result += ExecuteDbCommand(CreateUpdateCommand(oAsExpando, GetPrimaryKey(o)), connectionToUse, transactionToUse);
@@ -1154,7 +1175,7 @@ namespace Massive
             dynamic result = new ExpandoObject();
             result.TotalRecords = Scalar(queryPair.CountQuery, args);
             result.TotalPages = result.TotalRecords / pageSize;
-            if(result.TotalRecords % pageSize > 0)
+            if (result.TotalRecords % pageSize > 0)
             {
                 result.TotalPages += 1;
             }
@@ -1233,14 +1254,14 @@ namespace Massive
         private string ReadifyClause(string rawClause, string op)
         {
             var toReturn = string.Empty;
-            if(rawClause == null)
+            if (rawClause == null)
             {
                 return toReturn;
             }
             toReturn = rawClause.Trim();
             if (string.IsNullOrWhiteSpace(toReturn)) return toReturn;
 
-            if(toReturn.StartsWith(op, StringComparison.OrdinalIgnoreCase))
+            if (toReturn.StartsWith(op, StringComparison.OrdinalIgnoreCase))
             {
                 toReturn = " " + toReturn;
             }
@@ -1259,12 +1280,12 @@ namespace Massive
         {
             TableNameWithoutSchema = TableName;
             SchemaName = string.Empty;
-            if(string.IsNullOrWhiteSpace(TableName))
+            if (string.IsNullOrWhiteSpace(TableName))
             {
                 return;
             }
             var fragments = TableName.Split('.');
-            if(fragments.Length == 1)
+            if (fragments.Length == 1)
             {
                 TableNameWithoutSchema = fragments[0];
             }
@@ -1284,7 +1305,7 @@ namespace Massive
         public virtual List<DbCommand> BuildCommands(params object[] things)
         {
             var commands = new List<DbCommand>();
-            foreach(var item in things)
+            foreach (var item in things)
             {
                 commands.Add(HasPrimaryKey(item) ? CreateUpdateCommand(item.ToExpando(), GetPrimaryKey(item)) : CreateInsertCommand(item.ToExpando()));
             }
@@ -1313,7 +1334,7 @@ namespace Massive
                 dynamic result = new ExpandoObject();
                 var dc = (IDictionary<string, object>)result;
                 var schema = Schema;
-                foreach(var column in schema)
+                foreach (var column in schema)
                 {
                     var columnName = this.GetColumnName(column);
                     dc.Add(columnName, this.DefaultValue(columnName));
